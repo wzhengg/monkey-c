@@ -10,6 +10,7 @@ static void read_char(lexer_t *l);
 static token_t *new_token(token_type_t type, char *literal);
 static char *read_identifier(lexer_t *l);
 static char *read_number(lexer_t *l);
+static char peek_char(lexer_t *l);
 static bool is_letter(char ch);
 static bool is_digit(char ch);
 static void skip_whitespace(lexer_t *l);
@@ -56,7 +57,38 @@ token_t *next_token(lexer_t *l) {
 
 	switch (l->ch) {
 		case '=':
-			token = new_token(TOKEN_ASSIGN, "=");
+			if (peek_char(l) == '=') {
+				read_char(l);
+				token = new_token(TOKEN_EQ, "==");
+			} else {
+				token = new_token(TOKEN_ASSIGN, "=");
+			}
+			break;
+		case '+':
+			token = new_token(TOKEN_PLUS, "+");
+			break;
+		case '-':
+			token = new_token(TOKEN_MINUS, "-");
+			break;
+		case '!':
+			if (peek_char(l) == '=') {
+				read_char(l);
+				token = new_token(TOKEN_NEQ, "!=");
+			} else {
+				token = new_token(TOKEN_BANG, "!");
+			}
+			break;
+		case '*':
+			token = new_token(TOKEN_ASTERISK, "*");
+			break;
+		case '/':
+			token = new_token(TOKEN_SLASH, "/");
+			break;
+		case '<':
+			token = new_token(TOKEN_LT, "<");
+			break;
+		case '>':
+			token = new_token(TOKEN_GT, ">");
 			break;
 		case ';':
 			token = new_token(TOKEN_SEMICOLON, ";");
@@ -69,9 +101,6 @@ token_t *next_token(lexer_t *l) {
 			break;
 		case ',':
 			token = new_token(TOKEN_COMMA, ",");
-			break;
-		case '+':
-			token = new_token(TOKEN_PLUS, "+");
 			break;
 		case '{':
 			token = new_token(TOKEN_LBRACE, "{");
@@ -162,6 +191,13 @@ static char *read_number(lexer_t *l) {
 	number[n] = '\0';
 
 	return number;
+}
+
+static char peek_char(lexer_t *l) {
+	if (l->read_position >= l->n) {
+		return 0;
+	}
+	return l->input[l->read_position];
 }
 
 static bool is_letter(char ch) {

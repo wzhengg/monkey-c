@@ -9,6 +9,16 @@ typedef enum {
 
 	TOKEN_ASSIGN,
 	TOKEN_PLUS,
+	TOKEN_MINUS,
+	TOKEN_BANG,
+	TOKEN_ASTERISK,
+	TOKEN_SLASH,
+
+	TOKEN_EQ,
+	TOKEN_NEQ,
+
+	TOKEN_LT,
+	TOKEN_GT,
 
 	TOKEN_COMMA,
 	TOKEN_SEMICOLON,
@@ -20,6 +30,11 @@ typedef enum {
 
 	TOKEN_FUNCTION,
 	TOKEN_LET,
+	TOKEN_TRUE,
+	TOKEN_FALSE,
+	TOKEN_IF,
+	TOKEN_ELSE,
+	TOKEN_RETURN,
 } token_type_t;
 
 typedef struct {
