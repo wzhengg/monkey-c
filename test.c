@@ -1,107 +1,483 @@
-#include "test.h"
-
+#include "ast.h"
 #include "lexer.h"
+#include "parser.h"
 #include "token.h"
 
+#include <assert.h>
 #include <string.h>
 
-void test_lexer(void) {
-	char *input = "let five = 5;\nlet ten = 10;\n\nlet add = fn(x, y) {\n\tx + y;\n};\n\nlet result = add(five, ten);\n!-/*5;\n5 < 10 > 5;\n\nif (5 < 10) {\n\treturn true;\n} else {\n\treturn false;\n}\n\n10 == 10;\n10 != 9;";
+static void test_lexer() {
+	char *input =
+		"let five = 5;\n"
+		"let ten = 10;\n"
+		"\n"
+		"let add = fn(x, y) {\n"
+		"\tx + y;\n"
+		"};\n"
+		"\n"
+		"let result = add(five, ten);\n"
+		"!-/*5;\n"
+		"5 < 10 > 5;\n"
+		"\n"
+		"if (5 < 10) {\n"
+		"\treturn true;\n"
+		"} else {\n"
+		"\treturn false;\n"
+		"}\n"
+		"\n"
+		"10 == 10;\n"
+		"10 != 9;";
 
-	struct test {
-		token_type_t expected_type;
-		char *expected_literal;
-	};
+	lexer_t *lexer = lexer_new(input);
+	assert(lexer != NULL);
+	token_t *token;
 
-	struct test tests[] = {
-		{.expected_type=TOKEN_LET, .expected_literal="let"},
-		{.expected_type=TOKEN_IDENT, .expected_literal="five"},
-		{.expected_type=TOKEN_ASSIGN, .expected_literal="="},
-		{.expected_type=TOKEN_INT, .expected_literal="5"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_LET, .expected_literal="let"},
-		{.expected_type=TOKEN_IDENT, .expected_literal="ten"},
-		{.expected_type=TOKEN_ASSIGN, .expected_literal="="},
-		{.expected_type=TOKEN_INT, .expected_literal="10"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_LET, .expected_literal="let"},
-		{.expected_type=TOKEN_IDENT, .expected_literal="add"},
-		{.expected_type=TOKEN_ASSIGN, .expected_literal="="},
-		{.expected_type=TOKEN_FUNCTION, .expected_literal="fn"},
-		{.expected_type=TOKEN_LPAREN, .expected_literal="("},
-		{.expected_type=TOKEN_IDENT, .expected_literal="x"},
-		{.expected_type=TOKEN_COMMA, .expected_literal=","},
-		{.expected_type=TOKEN_IDENT, .expected_literal="y"},
-		{.expected_type=TOKEN_RPAREN, .expected_literal=")"},
-		{.expected_type=TOKEN_LBRACE, .expected_literal="{"},
-		{.expected_type=TOKEN_IDENT, .expected_literal="x"},
-		{.expected_type=TOKEN_PLUS, .expected_literal="+"},
-		{.expected_type=TOKEN_IDENT, .expected_literal="y"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_RBRACE, .expected_literal="}"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_LET, .expected_literal="let"},
-		{.expected_type=TOKEN_IDENT, .expected_literal="result"},
-		{.expected_type=TOKEN_ASSIGN, .expected_literal="="},
-		{.expected_type=TOKEN_IDENT, .expected_literal="add"},
-		{.expected_type=TOKEN_LPAREN, .expected_literal="("},
-		{.expected_type=TOKEN_IDENT, .expected_literal="five"},
-		{.expected_type=TOKEN_COMMA, .expected_literal=","},
-		{.expected_type=TOKEN_IDENT, .expected_literal="ten"},
-		{.expected_type=TOKEN_RPAREN, .expected_literal=")"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_BANG, .expected_literal="!"},
-		{.expected_type=TOKEN_MINUS, .expected_literal="-"},
-		{.expected_type=TOKEN_SLASH, .expected_literal="/"},
-		{.expected_type=TOKEN_ASTERISK, .expected_literal="*"},
-		{.expected_type=TOKEN_INT, .expected_literal="5"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_INT, .expected_literal="5"},
-		{.expected_type=TOKEN_LT, .expected_literal="<"},
-		{.expected_type=TOKEN_INT, .expected_literal="10"},
-		{.expected_type=TOKEN_GT, .expected_literal=">"},
-		{.expected_type=TOKEN_INT, .expected_literal="5"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_IF, .expected_literal="if"},
-		{.expected_type=TOKEN_LPAREN, .expected_literal="("},
-		{.expected_type=TOKEN_INT, .expected_literal="5"},
-		{.expected_type=TOKEN_LT, .expected_literal="<"},
-		{.expected_type=TOKEN_INT, .expected_literal="10"},
-		{.expected_type=TOKEN_RPAREN, .expected_literal=")"},
-		{.expected_type=TOKEN_LBRACE, .expected_literal="{"},
-		{.expected_type=TOKEN_RETURN, .expected_literal="return"},
-		{.expected_type=TOKEN_TRUE, .expected_literal="true"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_RBRACE, .expected_literal="}"},
-		{.expected_type=TOKEN_ELSE, .expected_literal="else"},
-		{.expected_type=TOKEN_LBRACE, .expected_literal="{"},
-		{.expected_type=TOKEN_RETURN, .expected_literal="return"},
-		{.expected_type=TOKEN_FALSE, .expected_literal="false"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_RBRACE, .expected_literal="}"},
-		{.expected_type=TOKEN_INT, .expected_literal="10"},
-		{.expected_type=TOKEN_EQ, .expected_literal="=="},
-		{.expected_type=TOKEN_INT, .expected_literal="10"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_INT, .expected_literal="10"},
-		{.expected_type=TOKEN_NEQ, .expected_literal="!="},
-		{.expected_type=TOKEN_INT, .expected_literal="9"},
-		{.expected_type=TOKEN_SEMICOLON, .expected_literal=";"},
-		{.expected_type=TOKEN_EOF, .expected_literal=""}
-	};
 
-	lexer_t *l = new_lexer(input);
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LET);
+	assert(strcmp(token->literal, "let") == 0);
 
-	for (int i = 0; i < 74; ++i) {
-		token_t *token = next_token(l);
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "five") == 0);
 
-		ASSERT_TRUE(token->type == tests[i].expected_type, "wrong token");
-		ASSERT_TRUE(strcmp(token->literal, tests[i].expected_literal) == 0, "wrong literal");
-	}
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_ASSIGN);
+	assert(strcmp(token->literal, "=") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "5") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LET);
+	assert(strcmp(token->literal, "let") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "ten") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_ASSIGN);
+	assert(strcmp(token->literal, "=") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "10") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LET);
+	assert(strcmp(token->literal, "let") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "add") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_ASSIGN);
+	assert(strcmp(token->literal, "=") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_FUNCTION);
+	assert(strcmp(token->literal, "fn") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LPAREN);
+	assert(strcmp(token->literal, "(") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "x") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_COMMA);
+	assert(strcmp(token->literal, ",") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "y") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_RPAREN);
+	assert(strcmp(token->literal, ")") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LBRACE);
+	assert(strcmp(token->literal, "{") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "x") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_PLUS);
+	assert(strcmp(token->literal, "+") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "y") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_RBRACE);
+	assert(strcmp(token->literal, "}") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LET);
+	assert(strcmp(token->literal, "let") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "result") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_ASSIGN);
+	assert(strcmp(token->literal, "=") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "add") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LPAREN);
+	assert(strcmp(token->literal, "(") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "five") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_COMMA);
+	assert(strcmp(token->literal, ",") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IDENT);
+	assert(strcmp(token->literal, "ten") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_RPAREN);
+	assert(strcmp(token->literal, ")") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_BANG);
+	assert(strcmp(token->literal, "!") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_MINUS);
+	assert(strcmp(token->literal, "-") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SLASH);
+	assert(strcmp(token->literal, "/") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_ASTERISK);
+	assert(strcmp(token->literal, "*") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "5") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "5") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LT);
+	assert(strcmp(token->literal, "<") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "10") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_GT);
+	assert(strcmp(token->literal, ">") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "5") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_IF);
+	assert(strcmp(token->literal, "if") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LPAREN);
+	assert(strcmp(token->literal, "(") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "5") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LT);
+	assert(strcmp(token->literal, "<") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "10") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_RPAREN);
+	assert(strcmp(token->literal, ")") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LBRACE);
+	assert(strcmp(token->literal, "{") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_RETURN);
+	assert(strcmp(token->literal, "return") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_TRUE);
+	assert(strcmp(token->literal, "true") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_RBRACE);
+	assert(strcmp(token->literal, "}") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_ELSE);
+	assert(strcmp(token->literal, "else") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_LBRACE);
+	assert(strcmp(token->literal, "{") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_RETURN);
+	assert(strcmp(token->literal, "return") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_FALSE);
+	assert(strcmp(token->literal, "false") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_RBRACE);
+	assert(strcmp(token->literal, "}") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "10") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_EQ);
+	assert(strcmp(token->literal, "==") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "10") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "10") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_NEQ);
+	assert(strcmp(token->literal, "!=") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_INT);
+	assert(strcmp(token->literal, "9") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_SEMICOLON);
+	assert(strcmp(token->literal, ";") == 0);
+
+	token = lexer_next_token(lexer);
+	assert(token != NULL);
+	assert(token->type == TOKEN_EOF);
+	assert(strcmp(token->literal, "") == 0);
+}
+
+static void test_parser_let_statements() {
+	char *input =
+		"let x = 5;\n"
+		"let y = 10;\n"
+		"let foobar = 838383;";
+
+	lexer_t *lexer = lexer_new(input);
+	assert(lexer != NULL);
+	parser_t *parser = parser_new(lexer);
+	assert(parser != NULL);
+
+	ast_node_t *prog = parser_parse_program(parser);
+	assert(prog != NULL);
+	assert(prog->type == AST_PROGRAM);
+	assert(prog->data.prog->stmts->size == 3);
+
+	ast_stmt_t *stmt = ast_prog_stmts_get(prog->data.prog, 0);
+	assert(stmt != NULL);
+	assert(stmt->type == AST_LET);
+	assert(strcmp(stmt->data.let->token->literal, "let") == 0);
+	assert(strcmp(stmt->data.let->name->value, "x") == 0);
+	assert(strcmp(stmt->data.let->name->token->literal, "x") == 0);
+
+	stmt = ast_prog_stmts_get(prog->data.prog, 1);
+	assert(stmt != NULL);
+	assert(stmt->type == AST_LET);
+	assert(strcmp(stmt->data.let->token->literal, "let") == 0);
+	assert(strcmp(stmt->data.let->name->value, "y") == 0);
+	assert(strcmp(stmt->data.let->name->token->literal, "y") == 0);
+
+	stmt = ast_prog_stmts_get(prog->data.prog, 2);
+	assert(stmt != NULL);
+	assert(stmt->type == AST_LET);
+	assert(strcmp(stmt->data.let->token->literal, "let") == 0);
+	assert(strcmp(stmt->data.let->name->value, "foobar") == 0);
+	assert(strcmp(stmt->data.let->name->token->literal, "foobar") == 0);
+}
+
+static void test_parser_return_statements() {
+	char *input =
+		"return 5;\n"
+		"return 10;\n"
+		"return 993322;";
+
+	lexer_t *lexer = lexer_new(input);
+	assert(lexer != NULL);
+	parser_t *parser = parser_new(lexer);
+	assert(parser != NULL);
+
+	ast_node_t *prog = parser_parse_program(parser);
+	assert(prog != NULL);
+	assert(prog->type == AST_PROGRAM);
+	assert(prog->data.prog->stmts->size == 3);
+
+	ast_stmt_t *stmt = ast_prog_stmts_get(prog->data.prog, 0);
+	assert(stmt != NULL);
+	assert(stmt->type == AST_RETURN);
+	assert(strcmp(stmt->data.ret->token->literal, "return") == 0);
+
+	stmt = ast_prog_stmts_get(prog->data.prog, 1);
+	assert(stmt != NULL);
+	assert(stmt->type == AST_RETURN);
+	assert(strcmp(stmt->data.ret->token->literal, "return") == 0);
+
+	stmt = ast_prog_stmts_get(prog->data.prog, 2);
+	assert(stmt != NULL);
+	assert(stmt->type == AST_RETURN);
+	assert(strcmp(stmt->data.ret->token->literal, "return") == 0);
 }
 
 int main(void) {
 	test_lexer();
+	test_parser_let_statements();
+	test_parser_return_statements();
 
 	return 0;
 }

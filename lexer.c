@@ -15,7 +15,7 @@ static bool is_letter(char ch);
 static bool is_digit(char ch);
 static void skip_whitespace(lexer_t *l);
 
-lexer_t *new_lexer(char *input) {
+lexer_t *lexer_new(char *input) {
 	lexer_t *l = malloc(sizeof *l);
 	if (l == NULL) {
 		return NULL;
@@ -50,7 +50,7 @@ static void read_char(lexer_t *l) {
 	++l->read_position;
 }
 
-token_t *next_token(lexer_t *l) {
+token_t *lexer_next_token(lexer_t *l) {
 	token_t *token = NULL;
 
 	skip_whitespace(l);

@@ -11,5 +11,5 @@ typedef struct {
 	char ch;
 } lexer_t;
 
-lexer_t *new_lexer(char *input);
-token_t *next_token(lexer_t *l);
+lexer_t *lexer_new(char *input);
+token_t *lexer_next_token(lexer_t *l);
