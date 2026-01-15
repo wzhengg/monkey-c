@@ -118,12 +118,12 @@ typedef struct ast_expr_stmt {
 typedef struct ast_let_stmt {
 	token_t *token;
 	ast_ident_expr_t *name;
-	ast_node_t *value;
+	ast_expr_t *value;
 } ast_let_stmt_t;
 
 typedef struct ast_return_stmt {
 	token_t *token;
-	ast_node_t *return_value;
+	ast_expr_t *return_value;
 } ast_return_stmt_t;
 
 typedef union {

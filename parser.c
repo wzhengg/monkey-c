@@ -207,7 +207,11 @@ static ast_stmt_t *parse_let_statement(parser_t *parser) {
 		return NULL;
 	}
 
-	while (!cur_token_is(parser, TOKEN_SEMICOLON)) {
+	next_token(parser);
+
+	stmt->data.let->value = parse_expression(parser, PRECEDENCE_LOWEST);
+
+	if (peek_token_is(parser, TOKEN_SEMICOLON)) {
 		next_token(parser);
 	}
 
@@ -232,7 +236,9 @@ static ast_stmt_t *parse_return_statement(parser_t *parser) {
 
 	next_token(parser);
 
-	while (!cur_token_is(parser, TOKEN_SEMICOLON)) {
+	stmt->data.ret->return_value = parse_expression(parser, PRECEDENCE_LOWEST);
+
+	if (peek_token_is(parser, TOKEN_SEMICOLON)) {
 		next_token(parser);
 	}
 
