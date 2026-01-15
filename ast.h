@@ -12,6 +12,7 @@ typedef enum {
 } ast_node_type_t;
 
 typedef enum {
+	AST_BOOLEAN,
 	AST_IDENTIFIER,
 	AST_INT_LITERAL,
 	AST_PREFIX,
@@ -27,6 +28,11 @@ typedef enum {
 
 
 typedef struct ast_expr ast_expr_t;
+
+typedef struct {
+	token_t *token;
+	bool value;
+} ast_bool_expr_t;
 
 typedef struct {
 	token_t *token;
@@ -52,6 +58,7 @@ typedef struct {
 } ast_infix_expr_t;
 
 typedef union {
+	ast_bool_expr_t *boolean;
 	ast_ident_expr_t *ident;
 	ast_int_lit_expr_t *int_lit;
 	ast_prefix_expr_t *prefix;

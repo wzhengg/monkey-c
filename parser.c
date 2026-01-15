@@ -24,10 +24,12 @@ static ast_stmt_t *parse_let_statement(parser_t *parser);
 static ast_stmt_t *parse_return_statement(parser_t *parser);
 
 static ast_expr_t *parse_expression(parser_t *parser, op_precedence_t precedence);
+static ast_expr_t *parse_boolean(parser_t *parser);
 static ast_expr_t *parse_identifier(parser_t *parser);
 static ast_expr_t *parse_integer_literal(parser_t *parser);
 static ast_expr_t *parse_prefix_expression(parser_t *parser);
 static ast_expr_t *parse_infix_expression(parser_t *parser, ast_expr_t *left);
+static ast_expr_t *ast_expr_new(ast_expr_type_t type);
 
 static void next_token(parser_t *parser);
 static bool cur_token_is(parser_t *parser, token_type_t type);
@@ -63,6 +65,8 @@ parser_t *parser_new(lexer_t *lexer) {
 		return NULL;
 	}
 
+	register_prefix(parser, TOKEN_TRUE, parse_boolean);
+	register_prefix(parser, TOKEN_FALSE, parse_boolean);
 	register_prefix(parser, TOKEN_IDENT, parse_identifier);
 	register_prefix(parser, TOKEN_INT, parse_integer_literal);
 	register_prefix(parser, TOKEN_BANG, parse_prefix_expression);
@@ -245,13 +249,29 @@ static ast_expr_t *parse_expression(parser_t *parser, op_precedence_t precedence
 	return left_expr;
 }
 
-static ast_expr_t *parse_identifier(parser_t *parser) {
-	ast_expr_t *expr = malloc(sizeof(ast_expr_t));
+static ast_expr_t *parse_boolean(parser_t *parser) {
+	ast_expr_t *expr = ast_expr_new(AST_BOOLEAN);
 	if (expr == NULL) {
 		return NULL;
 	}
 
-	expr->type = AST_IDENTIFIER;
+	expr->data.boolean = malloc(sizeof(ast_bool_expr_t));
+	if (expr->data.boolean == NULL) {
+		free(expr);
+		return NULL;
+	}
+
+	expr->data.boolean->token = parser->cur_token;
+	expr->data.boolean->value = cur_token_is(parser, TOKEN_TRUE);
+
+	return expr;
+}
+
+static ast_expr_t *parse_identifier(parser_t *parser) {
+	ast_expr_t *expr = ast_expr_new(AST_IDENTIFIER);
+	if (expr == NULL) {
+		return NULL;
+	}
 
 	expr->data.ident = malloc(sizeof(ast_ident_expr_t));
 	if (expr->data.ident == NULL) {
@@ -266,12 +286,10 @@ static ast_expr_t *parse_identifier(parser_t *parser) {
 }
 
 static ast_expr_t *parse_integer_literal(parser_t *parser) {
-	ast_expr_t *expr = malloc(sizeof(ast_expr_t));
+	ast_expr_t *expr = ast_expr_new(AST_INT_LITERAL);
 	if (expr == NULL) {
 		return expr;
 	}
-
-	expr->type = AST_INT_LITERAL;
 
 	expr->data.int_lit = malloc(sizeof(ast_int_lit_expr_t));
 	if (expr->data.int_lit == NULL) {
@@ -286,12 +304,10 @@ static ast_expr_t *parse_integer_literal(parser_t *parser) {
 }
 
 static ast_expr_t *parse_prefix_expression(parser_t *parser) {
-	ast_expr_t *expr = malloc(sizeof(ast_expr_t));
+	ast_expr_t *expr = ast_expr_new(AST_PREFIX);
 	if (expr == NULL) {
 		return NULL;
 	}
-
-	expr->type = AST_PREFIX;
 
 	expr->data.prefix = malloc(sizeof(ast_prefix_expr_t));
 	if (expr->data.prefix == NULL) {
@@ -310,12 +326,10 @@ static ast_expr_t *parse_prefix_expression(parser_t *parser) {
 }
 
 static ast_expr_t *parse_infix_expression(parser_t *parser, ast_expr_t *left) {
-	ast_expr_t *expr = malloc(sizeof(ast_expr_t));
+	ast_expr_t *expr = ast_expr_new(AST_INFIX);
 	if (expr == NULL) {
 		return NULL;
 	}
-
-	expr->type = AST_INFIX;
 
 	expr->data.infix = malloc(sizeof(ast_infix_expr_t));
 	if (expr->data.infix == NULL) {
@@ -330,6 +344,17 @@ static ast_expr_t *parse_infix_expression(parser_t *parser, ast_expr_t *left) {
 	op_precedence_t precedence = cur_precedence(parser);
 	next_token(parser);
 	expr->data.infix->right = parse_expression(parser, precedence);
+
+	return expr;
+}
+
+static ast_expr_t *ast_expr_new(ast_expr_type_t type) {
+	ast_expr_t *expr = malloc(sizeof(ast_expr_t));
+	if (expr == NULL) {
+		return NULL;
+	}
+
+	expr->type = type;
 
 	return expr;
 }
