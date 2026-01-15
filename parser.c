@@ -32,6 +32,8 @@ static ast_expr_t *parse_prefix_expression(parser_t *parser);
 static ast_expr_t *parse_infix_expression(parser_t *parser, ast_expr_t *left);
 static ast_expr_t *parse_grouped_expression(parser_t *parser);
 static ast_expr_t *parse_if_expression(parser_t *parser);
+static ast_expr_t *parse_function_literal(parser_t *parser);
+static list_t *parse_function_parameters(parser_t *parser);
 static ast_expr_t *ast_expr_new(ast_expr_type_t type);
 
 static void next_token(parser_t *parser);
@@ -76,6 +78,7 @@ parser_t *parser_new(lexer_t *lexer) {
 	register_prefix(parser, TOKEN_MINUS, parse_prefix_expression);
 	register_prefix(parser, TOKEN_LPAREN, parse_grouped_expression);
 	register_prefix(parser, TOKEN_IF, parse_if_expression);
+	register_prefix(parser, TOKEN_FUNCTION, parse_function_literal);
 
 	register_infix(parser, TOKEN_PLUS, parse_infix_expression);
 	register_infix(parser, TOKEN_MINUS, parse_infix_expression);
@@ -450,6 +453,75 @@ static ast_expr_t *parse_if_expression(parser_t *parser) {
 	}
 
 	return expr;
+}
+
+static ast_expr_t *parse_function_literal(parser_t *parser) {
+	ast_expr_t *expr = ast_expr_new(AST_FN_LIT);
+	if (expr == NULL) {
+		return NULL;
+	}
+
+	expr->data.fn = malloc(sizeof(ast_fn_lit_expr_t));
+	if (expr->data.fn == NULL) {
+		free(expr);
+		return NULL;
+	}
+
+	expr->data.fn->token = parser->cur_token;
+
+	if (!expect_peek(parser, TOKEN_LPAREN)) {
+		free(expr->data.fn);
+		free(expr);
+		return NULL;
+	}
+
+	expr->data.fn->parameters = parse_function_parameters(parser);
+
+	if (!expect_peek(parser, TOKEN_LBRACE)) {
+		free(expr->data.fn);
+		free(expr);
+		return NULL;
+	}
+
+	expr->data.fn->body = parse_block_statement(parser);
+
+	return expr;
+}
+
+static list_t *parse_function_parameters(parser_t *parser) {
+	list_t *identifiers = list_new(1);
+	if (identifiers == NULL) {
+		return NULL;
+	}
+
+	if (peek_token_is(parser, TOKEN_RPAREN)) {
+		next_token(parser);
+		return identifiers;
+	}
+
+	next_token(parser);
+
+	do {
+		ast_ident_expr_t *ident = malloc(sizeof(ast_ident_expr_t));
+		if (ident == NULL) {
+			exit(1);
+		}
+
+		ident->token = parser->cur_token;
+		ident->value = parser->cur_token->literal;
+
+		list_append(identifiers, ident);
+
+		next_token(parser);
+		next_token(parser);
+	} while (peek_token_is(parser, TOKEN_COMMA));
+
+	if (!expect_peek(parser, TOKEN_RPAREN)) {
+		list_free(identifiers);
+		return NULL;
+	}
+
+	return identifiers;
 }
 
 static ast_expr_t *ast_expr_new(ast_expr_type_t type) {

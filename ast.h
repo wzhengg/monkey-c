@@ -16,6 +16,7 @@ typedef enum {
 	AST_IDENTIFIER,
 	AST_INT_LITERAL,
 	AST_IF,
+	AST_FN_LIT,
 	AST_PREFIX,
 	AST_INFIX,
 } ast_expr_type_t;
@@ -57,6 +58,12 @@ typedef struct {
 
 typedef struct {
 	token_t *token;
+	list_t *parameters;
+	ast_stmt_t *body;
+} ast_fn_lit_expr_t;
+
+typedef struct {
+	token_t *token;
 	char *op;
 	ast_expr_t *right;
 } ast_prefix_expr_t;
@@ -73,6 +80,7 @@ typedef union {
 	ast_ident_expr_t *ident;
 	ast_int_lit_expr_t *int_lit;
 	ast_if_expr_t *if_expr;
+	ast_fn_lit_expr_t *fn;
 	ast_prefix_expr_t *prefix;
 	ast_infix_expr_t *infix;
 } ast_expr_data_t;
