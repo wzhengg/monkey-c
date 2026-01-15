@@ -1,7 +1,7 @@
 #pragma once
 
 typedef enum {
-	TOKEN_ILLEGAL,
+	TOKEN_ILLEGAL = 0,
 	TOKEN_EOF,
 
 	TOKEN_IDENT,
@@ -35,6 +35,8 @@ typedef enum {
 	TOKEN_IF,
 	TOKEN_ELSE,
 	TOKEN_RETURN,
+
+	TOKEN_COUNT,
 } token_type_t;
 
 typedef struct {
