@@ -22,6 +22,7 @@ static ast_stmt_t *parse_statement(parser_t *parser);
 static ast_stmt_t *parse_expression_statement(parser_t *parser);
 static ast_stmt_t *parse_let_statement(parser_t *parser);
 static ast_stmt_t *parse_return_statement(parser_t *parser);
+static ast_stmt_t *parse_block_statement(parser_t *parser);
 
 static ast_expr_t *parse_expression(parser_t *parser, op_precedence_t precedence);
 static ast_expr_t *parse_boolean(parser_t *parser);
@@ -30,6 +31,7 @@ static ast_expr_t *parse_integer_literal(parser_t *parser);
 static ast_expr_t *parse_prefix_expression(parser_t *parser);
 static ast_expr_t *parse_infix_expression(parser_t *parser, ast_expr_t *left);
 static ast_expr_t *parse_grouped_expression(parser_t *parser);
+static ast_expr_t *parse_if_expression(parser_t *parser);
 static ast_expr_t *ast_expr_new(ast_expr_type_t type);
 
 static void next_token(parser_t *parser);
@@ -73,6 +75,7 @@ parser_t *parser_new(lexer_t *lexer) {
 	register_prefix(parser, TOKEN_BANG, parse_prefix_expression);
 	register_prefix(parser, TOKEN_MINUS, parse_prefix_expression);
 	register_prefix(parser, TOKEN_LPAREN, parse_grouped_expression);
+	register_prefix(parser, TOKEN_IF, parse_if_expression);
 
 	register_infix(parser, TOKEN_PLUS, parse_infix_expression);
 	register_infix(parser, TOKEN_MINUS, parse_infix_expression);
@@ -229,6 +232,41 @@ static ast_stmt_t *parse_return_statement(parser_t *parser) {
 	return stmt;
 }
 
+static ast_stmt_t *parse_block_statement(parser_t *parser) {
+	ast_stmt_t *block = malloc(sizeof(ast_stmt_t));
+	if (block == NULL) {
+		return NULL;
+	}
+
+	block->type = AST_BLOCK_STMT;
+
+	block->data.block = malloc(sizeof(ast_block_stmt_t));
+	if (block->data.block == NULL) {
+		free(block);
+		return NULL;
+	}
+
+	block->data.block->token = parser->cur_token;
+	block->data.block->stmts = list_new(64);
+	if (block->data.block->stmts == NULL) {
+		free(block->data.block);
+		free(block);
+		return NULL;
+	}
+
+	next_token(parser);
+
+	while (!cur_token_is(parser, TOKEN_RBRACE) && !cur_token_is(parser, TOKEN_EOF)) {
+		ast_stmt_t *stmt = parse_statement(parser);
+		if (stmt != NULL) {
+			list_append(block->data.block->stmts, stmt);
+		}
+		next_token(parser);
+	}
+
+	return block;
+}
+
 static ast_expr_t *parse_expression(parser_t *parser, op_precedence_t precedence) {
 	parser_prefix_parse_fn prefix = parser->prefix_parse_fns[parser->cur_token->type];
 	if (prefix == NULL) {
@@ -357,6 +395,58 @@ static ast_expr_t *parse_grouped_expression(parser_t *parser) {
 
 	if (!peek_token_is(parser, TOKEN_RPAREN)) {
 		return NULL;
+	}
+
+	return expr;
+}
+
+static ast_expr_t *parse_if_expression(parser_t *parser) {
+	ast_expr_t *expr = ast_expr_new(AST_IF);
+	if (expr == NULL) {
+		return NULL;
+	}
+
+	expr->data.if_expr = malloc(sizeof(ast_if_expr_t));
+	if (expr->data.if_expr == NULL) {
+		free(expr);
+		return NULL;
+	}
+
+	expr->data.if_expr->token = parser->cur_token;
+
+	if (!expect_peek(parser, TOKEN_LPAREN)) {
+		free(expr->data.if_expr);
+		free(expr);
+		return NULL;
+	}
+
+	next_token(parser);
+	expr->data.if_expr->condition = parse_expression(parser, PRECEDENCE_LOWEST);
+
+	if (!expect_peek(parser, TOKEN_RPAREN)) {
+		free(expr->data.if_expr);
+		free(expr);
+		return NULL;
+	}
+
+	if (!expect_peek(parser, TOKEN_LBRACE)) {
+		free(expr->data.if_expr);
+		free(expr);
+		return NULL;
+	}
+
+	expr->data.if_expr->consequence = parse_block_statement(parser);
+
+	if (peek_token_is(parser, TOKEN_ELSE)) {
+		next_token(parser);
+
+		if (!expect_peek(parser, TOKEN_LBRACE)) {
+			free(expr->data.if_expr);
+			free(expr);
+			return NULL;
+		}
+
+		expr->data.if_expr->alternative = parse_block_statement(parser);
 	}
 
 	return expr;

@@ -15,11 +15,13 @@ typedef enum {
 	AST_BOOLEAN,
 	AST_IDENTIFIER,
 	AST_INT_LITERAL,
+	AST_IF,
 	AST_PREFIX,
 	AST_INFIX,
 } ast_expr_type_t;
 
 typedef enum {
+	AST_BLOCK_STMT,
 	AST_EXPR_STMT,
 	AST_LET,
 	AST_RETURN,
@@ -28,6 +30,8 @@ typedef enum {
 
 
 typedef struct ast_expr ast_expr_t;
+typedef struct ast_stmt ast_stmt_t;
+typedef struct ast_block_stmt ast_block_stmt_t;
 
 typedef struct {
 	token_t *token;
@@ -46,6 +50,13 @@ typedef struct {
 
 typedef struct {
 	token_t *token;
+	ast_expr_t *condition;
+	ast_stmt_t *consequence;
+	ast_stmt_t *alternative;
+} ast_if_expr_t;
+
+typedef struct {
+	token_t *token;
 	char *op;
 	ast_expr_t *right;
 } ast_prefix_expr_t;
@@ -61,6 +72,7 @@ typedef union {
 	ast_bool_expr_t *boolean;
 	ast_ident_expr_t *ident;
 	ast_int_lit_expr_t *int_lit;
+	ast_if_expr_t *if_expr;
 	ast_prefix_expr_t *prefix;
 	ast_infix_expr_t *infix;
 } ast_expr_data_t;
@@ -77,6 +89,10 @@ typedef struct {
 } ast_prog_t;
 
 
+typedef struct ast_block_stmt {
+	token_t *token;
+	list_t *stmts;
+} ast_block_stmt_t;
 
 typedef struct ast_expr_stmt {
 	token_t *token;
@@ -95,12 +111,13 @@ typedef struct ast_return_stmt {
 } ast_return_stmt_t;
 
 typedef union {
+	ast_block_stmt_t *block;
 	ast_expr_stmt_t *expr;
 	ast_let_stmt_t *let;
 	ast_return_stmt_t *ret;
 } ast_stmt_data_t;
 
-typedef struct {
+typedef struct ast_stmt {
 	ast_stmt_type_t type;
 	ast_stmt_data_t data;
 } ast_stmt_t;
