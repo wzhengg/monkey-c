@@ -13,6 +13,7 @@ typedef enum {
 
 typedef enum {
 	AST_BOOLEAN,
+	AST_CALL_EXPR,
 	AST_IDENTIFIER,
 	AST_INT_LITERAL,
 	AST_IF,
@@ -38,6 +39,12 @@ typedef struct {
 	token_t *token;
 	bool value;
 } ast_bool_expr_t;
+
+typedef struct {
+	token_t *token;
+	ast_expr_t *function;
+	list_t *arguments;
+} ast_call_expr_t;
 
 typedef struct {
 	token_t *token;
@@ -77,6 +84,7 @@ typedef struct {
 
 typedef union {
 	ast_bool_expr_t *boolean;
+	ast_call_expr_t *call;
 	ast_ident_expr_t *ident;
 	ast_int_lit_expr_t *int_lit;
 	ast_if_expr_t *if_expr;

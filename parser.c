@@ -15,7 +15,8 @@ op_precedence_t precedences[TOKEN_COUNT] = {
 	[TOKEN_PLUS] = PRECEDENCE_SUM,
 	[TOKEN_MINUS] = PRECEDENCE_SUM,
 	[TOKEN_SLASH] = PRECEDENCE_PRODUCT,
-	[TOKEN_ASTERISK] = PRECEDENCE_PRODUCT
+	[TOKEN_ASTERISK] = PRECEDENCE_PRODUCT,
+	[TOKEN_LPAREN] = PRECEDENCE_CALL
 };
 
 static ast_stmt_t *parse_statement(parser_t *parser);
@@ -34,6 +35,8 @@ static ast_expr_t *parse_grouped_expression(parser_t *parser);
 static ast_expr_t *parse_if_expression(parser_t *parser);
 static ast_expr_t *parse_function_literal(parser_t *parser);
 static list_t *parse_function_parameters(parser_t *parser);
+static ast_expr_t *parse_call_expression(parser_t *parser, ast_expr_t *function);
+static list_t *parse_call_arguments(parser_t *parser);
 static ast_expr_t *ast_expr_new(ast_expr_type_t type);
 
 static void next_token(parser_t *parser);
@@ -88,6 +91,7 @@ parser_t *parser_new(lexer_t *lexer) {
 	register_infix(parser, TOKEN_NEQ, parse_infix_expression);
 	register_infix(parser, TOKEN_LT, parse_infix_expression);
 	register_infix(parser, TOKEN_GT, parse_infix_expression);
+	register_infix(parser, TOKEN_LPAREN, parse_call_expression);
 
 	next_token(parser);
 	next_token(parser);
@@ -522,6 +526,52 @@ static list_t *parse_function_parameters(parser_t *parser) {
 	}
 
 	return identifiers;
+}
+
+static ast_expr_t *parse_call_expression(parser_t *parser, ast_expr_t *function) {
+	ast_expr_t *expr = ast_expr_new(AST_CALL_EXPR);
+	if (expr == NULL) {
+		return NULL;
+	}
+
+	expr->data.call = malloc(sizeof(ast_call_expr_t));
+	if (expr->data.call == NULL) {
+		free(expr);
+		return NULL;
+	}
+
+	expr->data.call->token = parser->cur_token;
+	expr->data.call->function = function;
+	expr->data.call->arguments = parse_call_arguments(parser);
+
+	return expr;
+}
+
+static list_t *parse_call_arguments(parser_t *parser) {
+	list_t *args = list_new(1);
+	if (args == NULL) {
+		return NULL;
+	}
+
+	if (peek_token_is(parser, TOKEN_RPAREN)) {
+		next_token(parser);
+		return args;
+	}
+
+	next_token(parser);
+
+	do {
+		list_append(args, parse_expression(parser, PRECEDENCE_LOWEST));
+		next_token(parser);
+		next_token(parser);
+	} while (peek_token_is(parser, TOKEN_COMMA));
+
+	if (!expect_peek(parser, TOKEN_RPAREN)) {
+		list_free(args);
+		return NULL;
+	}
+
+	return args;
 }
 
 static ast_expr_t *ast_expr_new(ast_expr_type_t type) {
