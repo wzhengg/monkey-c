@@ -29,6 +29,7 @@ static ast_expr_t *parse_identifier(parser_t *parser);
 static ast_expr_t *parse_integer_literal(parser_t *parser);
 static ast_expr_t *parse_prefix_expression(parser_t *parser);
 static ast_expr_t *parse_infix_expression(parser_t *parser, ast_expr_t *left);
+static ast_expr_t *parse_grouped_expression(parser_t *parser);
 static ast_expr_t *ast_expr_new(ast_expr_type_t type);
 
 static void next_token(parser_t *parser);
@@ -71,6 +72,7 @@ parser_t *parser_new(lexer_t *lexer) {
 	register_prefix(parser, TOKEN_INT, parse_integer_literal);
 	register_prefix(parser, TOKEN_BANG, parse_prefix_expression);
 	register_prefix(parser, TOKEN_MINUS, parse_prefix_expression);
+	register_prefix(parser, TOKEN_LPAREN, parse_grouped_expression);
 
 	register_infix(parser, TOKEN_PLUS, parse_infix_expression);
 	register_infix(parser, TOKEN_MINUS, parse_infix_expression);
@@ -344,6 +346,18 @@ static ast_expr_t *parse_infix_expression(parser_t *parser, ast_expr_t *left) {
 	op_precedence_t precedence = cur_precedence(parser);
 	next_token(parser);
 	expr->data.infix->right = parse_expression(parser, precedence);
+
+	return expr;
+}
+
+static ast_expr_t *parse_grouped_expression(parser_t *parser) {
+	next_token(parser);
+
+	ast_expr_t *expr = parse_expression(parser, PRECEDENCE_LOWEST);
+
+	if (!peek_token_is(parser, TOKEN_RPAREN)) {
+		return NULL;
+	}
 
 	return expr;
 }
