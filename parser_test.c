@@ -39,28 +39,28 @@ static void test_let_statements(void) {
 	parser_t *parser = parser_new(lexer);
 	assert(parser != NULL);
 
-	ast_node_t *prog = parser_parse_program(parser);
+	ast_node_t *prog = infix_parse_fn(parser);
 	assert(prog != NULL);
-	assert(prog->type == AST_PROGRAM);
+	assert(prog->type == AST_NODE_PROG);
 	assert(prog->data.prog->stmts->size == 3);
 
 	ast_stmt_t *stmt = ast_prog_stmts_get(prog->data.prog, 0);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_LET);
+	assert(stmt->type == AST_STMT_LET);
 	assert(strcmp(stmt->data.let->token->literal, "let") == 0);
 	assert(strcmp(stmt->data.let->name->value, "x") == 0);
 	assert(strcmp(stmt->data.let->name->token->literal, "x") == 0);
 
 	stmt = ast_prog_stmts_get(prog->data.prog, 1);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_LET);
+	assert(stmt->type == AST_STMT_LET);
 	assert(strcmp(stmt->data.let->token->literal, "let") == 0);
 	assert(strcmp(stmt->data.let->name->value, "y") == 0);
 	assert(strcmp(stmt->data.let->name->token->literal, "y") == 0);
 
 	stmt = ast_prog_stmts_get(prog->data.prog, 2);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_LET);
+	assert(stmt->type == AST_STMT_LET);
 	assert(strcmp(stmt->data.let->token->literal, "let") == 0);
 	assert(strcmp(stmt->data.let->name->value, "foobar") == 0);
 	assert(strcmp(stmt->data.let->name->token->literal, "foobar") == 0);
@@ -77,24 +77,24 @@ static void test_return_statements(void) {
 	parser_t *parser = parser_new(lexer);
 	assert(parser != NULL);
 
-	ast_node_t *prog = parser_parse_program(parser);
+	ast_node_t *prog = infix_parse_fn(parser);
 	assert(prog != NULL);
-	assert(prog->type == AST_PROGRAM);
+	assert(prog->type == AST_NODE_PROG);
 	assert(prog->data.prog->stmts->size == 3);
 
 	ast_stmt_t *stmt = ast_prog_stmts_get(prog->data.prog, 0);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_RETURN);
+	assert(stmt->type == AST_STMT_RETURN);
 	assert(strcmp(stmt->data.ret->token->literal, "return") == 0);
 
 	stmt = ast_prog_stmts_get(prog->data.prog, 1);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_RETURN);
+	assert(stmt->type == AST_STMT_RETURN);
 	assert(strcmp(stmt->data.ret->token->literal, "return") == 0);
 
 	stmt = ast_prog_stmts_get(prog->data.prog, 2);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_RETURN);
+	assert(stmt->type == AST_STMT_RETURN);
 	assert(strcmp(stmt->data.ret->token->literal, "return") == 0);
 }
 
@@ -106,23 +106,23 @@ static void test_identifier_expression(void) {
 	parser_t *parser = parser_new(lexer);
 	assert(parser != NULL);
 
-	ast_node_t *prog = parser_parse_program(parser);
+	ast_node_t *prog = infix_parse_fn(parser);
 	assert(prog != NULL);
 	assert(prog->data.prog->stmts != NULL);
 	assert(prog->data.prog->stmts->size == 1);
 
 	ast_stmt_t *stmt = ast_prog_stmts_get(prog->data.prog, 0);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_EXPR_STMT);
+	assert(stmt->type == AST_STMT_EXPR);
 
-	ast_expr_stmt_t *expr_stmt = stmt->data.expr;
+	ast_stmt_expr_t *expr_stmt = stmt->data.expr;
 	assert(expr_stmt != NULL);
 
 	ast_expr_t *expr = expr_stmt->expr;
 	assert(expr != NULL);
-	assert(expr->type == AST_IDENTIFIER);
+	assert(expr->type == AST_EXPR_IDENT);
 
-	ast_ident_expr_t *ident = expr->data.ident;
+	ast_expr_ident_t *ident = expr->data.ident;
 	assert(ident != NULL);
 	assert(strcmp(ident->value, "foobar") == 0);
 	assert(ident->token != NULL);
@@ -137,23 +137,23 @@ static void test_integer_literal_expression(void) {
 	parser_t *parser = parser_new(lexer);
 	assert(parser != NULL);
 
-	ast_node_t *prog = parser_parse_program(parser);
+	ast_node_t *prog = infix_parse_fn(parser);
 	assert(prog != NULL);
 	assert(prog->data.prog->stmts != NULL);
 	assert(prog->data.prog->stmts->size == 1);
 
 	ast_stmt_t *stmt = ast_prog_stmts_get(prog->data.prog, 0);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_EXPR_STMT);
+	assert(stmt->type == AST_STMT_EXPR);
 
-	ast_expr_stmt_t *expr_stmt = stmt->data.expr;
+	ast_stmt_expr_t *expr_stmt = stmt->data.expr;
 	assert(expr_stmt != NULL);
 
 	ast_expr_t *expr = expr_stmt->expr;
 	assert(expr != NULL);
-	assert(expr->type == AST_INT_LITERAL);
+	assert(expr->type == AST_EXPR_INT_LIT);
 
-	ast_int_lit_expr_t *lit = expr->data.int_lit;
+	ast_expr_int_lit_t *lit = expr->data.int_lit;
 	assert(lit != NULL);
 	assert(lit->value == 5);
 	assert(lit->token != NULL);
@@ -168,23 +168,23 @@ static void test_prefix_expression_bang(void) {
 	parser_t *parser = parser_new(lexer);
 	assert(parser != NULL);
 
-	ast_node_t *prog = parser_parse_program(parser);
+	ast_node_t *prog = infix_parse_fn(parser);
 	assert(prog != NULL);
 	assert(prog->data.prog->stmts != NULL);
 	assert(prog->data.prog->stmts->size == 1);
 
 	ast_stmt_t *stmt = ast_prog_stmts_get(prog->data.prog, 0);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_EXPR_STMT);
+	assert(stmt->type == AST_STMT_EXPR);
 
-	ast_expr_stmt_t *expr_stmt = stmt->data.expr;
+	ast_stmt_expr_t *expr_stmt = stmt->data.expr;
 	assert(expr_stmt != NULL);
 
 	ast_expr_t *expr = expr_stmt->expr;
 	assert(expr != NULL);
-	assert(expr->type == AST_PREFIX);
+	assert(expr->type == AST_EXPR_PREFIX);
 
-	ast_prefix_expr_t *prefix = expr->data.prefix;
+	ast_expr_prefix_t *prefix = expr->data.prefix;
 	assert(prefix != NULL);
 	assert(strcmp(prefix->op, "!") == 0);
 
@@ -199,23 +199,23 @@ static void test_prefix_expression_minus(void) {
 	parser_t *parser = parser_new(lexer);
 	assert(parser != NULL);
 
-	ast_node_t *prog = parser_parse_program(parser);
+	ast_node_t *prog = infix_parse_fn(parser);
 	assert(prog != NULL);
 	assert(prog->data.prog->stmts != NULL);
 	assert(prog->data.prog->stmts->size == 1);
 
 	ast_stmt_t *stmt = ast_prog_stmts_get(prog->data.prog, 0);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_EXPR_STMT);
+	assert(stmt->type == AST_STMT_EXPR);
 
-	ast_expr_stmt_t *expr_stmt = stmt->data.expr;
+	ast_stmt_expr_t *expr_stmt = stmt->data.expr;
 	assert(expr_stmt != NULL);
 
 	ast_expr_t *expr = expr_stmt->expr;
 	assert(expr != NULL);
-	assert(expr->type == AST_PREFIX);
+	assert(expr->type == AST_EXPR_PREFIX);
 
-	ast_prefix_expr_t *prefix = expr->data.prefix;
+	ast_expr_prefix_t *prefix = expr->data.prefix;
 	assert(prefix != NULL);
 	assert(strcmp(prefix->op, "-") == 0);
 
@@ -234,9 +234,9 @@ static void test_infix_expressions(void) {
 }
 
 static void test_integer_literal(ast_expr_t *expr, long long value) {
-	assert(expr->type == AST_INT_LITERAL);
+	assert(expr->type == AST_EXPR_INT_LIT);
 
-	ast_int_lit_expr_t *lit = expr->data.int_lit;
+	ast_expr_int_lit_t *lit = expr->data.int_lit;
 	assert(lit != NULL);
 
 	assert(lit->value == value);
@@ -248,23 +248,23 @@ static void test_infix_expression(char *input, long long left, char *op, long lo
 	parser_t *parser = parser_new(lexer);
 	assert(parser != NULL);
 
-	ast_node_t *prog = parser_parse_program(parser);
+	ast_node_t *prog = infix_parse_fn(parser);
 	assert(prog != NULL);
 	assert(prog->data.prog->stmts != NULL);
 	assert(prog->data.prog->stmts->size == 1);
 
 	ast_stmt_t *stmt = ast_prog_stmts_get(prog->data.prog, 0);
 	assert(stmt != NULL);
-	assert(stmt->type == AST_EXPR_STMT);
+	assert(stmt->type == AST_STMT_EXPR);
 
-	ast_expr_stmt_t *expr_stmt = stmt->data.expr;
+	ast_stmt_expr_t *expr_stmt = stmt->data.expr;
 	assert(expr_stmt != NULL);
 
 	ast_expr_t *expr = expr_stmt->expr;
 	assert(expr != NULL);
-	assert(expr->type == AST_INFIX);
+	assert(expr->type == AST_EXPR_INFIX);
 
-	ast_infix_expr_t *infix = expr->data.infix;
+	ast_expr_infix_t *infix = expr->data.infix;
 	assert(infix != NULL);
 	assert(strcmp(infix->op, op) == 0);
 
